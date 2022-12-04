@@ -105,12 +105,12 @@ int main(int argc, char* argv[])
         if (i != numStream-1)
         {
             cudaMemcpyAsync(in_d[i], in_h + i*segmentLenElements, sizeof(unsigned int)*segmentLenElements, cudaMemcpyHostToDevice, streams[i]);
-            cudaMemcpyAsync(B_d[i], bins_h + i*segmentLenBins, sizeof(unsigned int)*segmentLenBins, cudaMemcpyHostToDevice, streams[i]);
+            cudaMemcpyAsync(bins_d[i], bins_h + i*segmentLenBins, sizeof(unsigned int)*segmentLenBins, cudaMemcpyHostToDevice, streams[i]);
         }
         else
         {
-            cudaMemcpyAsync(A_d[i], A_h + i*segmentLen, sizeof(unsigned int)*(segmentLenElements + num_elements % numStream), cudaMemcpyHostToDevice, streams[i]);
-            cudaMemcpyAsync(B_d[i], B_h + i*segmentLen, sizeof(unsigned int)*(segmentLenBins + num_bins % numStream), cudaMemcpyHostToDevice, streams[i]);
+            cudaMemcpyAsync(A_d[i], A_h + i*segmentLenElements, sizeof(unsigned int)*(segmentLenElements + num_elements % numStream), cudaMemcpyHostToDevice, streams[i]);
+            cudaMemcpyAsync(bins_d[i], bins_h + i*segmentLenBins, sizeof(unsigned int)*(segmentLenBins + num_bins % numStream), cudaMemcpyHostToDevice, streams[i]);
         }
     }
 
