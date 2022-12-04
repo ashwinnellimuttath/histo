@@ -71,8 +71,10 @@ int main(int argc, char* argv[])
     {
         if (i != numStream-1)
         {
-            cudaMalloc((unsigned int**) &in_d[i], sizeof(unsigned int) * segmentLenElements);
-            cudaMalloc((unsigned int**) &bins_d[i], sizeof(unsigned int) * segmentLenBins);
+            cuda_ret = cudaMalloc((unsigned int**) &in_d[i], sizeof(unsigned int) * segmentLenElements);
+            if(cuda_ret != cudaSuccess) printf("Unable to allocate device memory");
+            cuda_ret = cudaMalloc((unsigned int**) &bins_d[i], sizeof(unsigned int) * segmentLenBins);
+            if(cuda_ret != cudaSuccess) printf("Unable to allocate device memory");
         }
         else    // remainder
         {
