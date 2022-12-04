@@ -50,11 +50,11 @@ int main(int argc, char* argv[])
     const int segmentLenElements = num_elements / numStream;
     const int segmentLenBins = num_bins / numStream;
 
+    printf("\nInitialized..."); fflush(stdout);
     initVector(&in_h, num_elements, num_bins);
     // bins_h = (unsigned int*) malloc(num_bins*sizeof(unsigned int));
     cudaHostAlloc((void**)&bins_h, num_bins*sizeof(unsigned int), cudaHostAllocDefault);
 
-    printf("\nInitialized..."); fflush(stdout);
 
     stopTime(&timer); printf("%f s\n", elapsedTime(timer));
     printf("    Input size = %u\n    Number of bins = %u\n", num_elements,
