@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
         }
         else
         {
-            cudaMemcpyAsync(A_d[i], A_h + i*segmentLenElements, sizeof(unsigned int)*(segmentLenElements + num_elements % numStream), cudaMemcpyHostToDevice, streams[i]);
+            cudaMemcpyAsync(in_d[i], in_h + i*segmentLenElements, sizeof(unsigned int)*(segmentLenElements + num_elements % numStream), cudaMemcpyHostToDevice, streams[i]);
             cudaMemcpyAsync(bins_d[i], bins_h + i*segmentLenBins, sizeof(unsigned int)*(segmentLenBins + num_bins % numStream), cudaMemcpyHostToDevice, streams[i]);
         }
     }
