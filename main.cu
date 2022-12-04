@@ -4,6 +4,8 @@
 #include "support.h"
 #include "kernel.cu"
 
+const unsigned int numStream = 2;
+
 int main(int argc, char* argv[])
 {
     Timer timer;
@@ -15,10 +17,15 @@ int main(int argc, char* argv[])
 
     unsigned int *in_h;
     unsigned int* bins_h;
-    unsigned int *in_d;
-    unsigned int* bins_d;
+    unsigned int *in_d[numStream];
+    unsigned int* bins_d[numStream];
     unsigned int num_elements, num_bins;
     cudaError_t cuda_ret;
+
+
+    cudaStream_t streams[numStream];
+    for (int i = 0; i < numStream; i++)
+        cudaStreamCreate(&streams[i]);
 
     if(argc == 1) {
         num_elements = 1000000;
@@ -37,8 +44,13 @@ int main(int argc, char* argv[])
            "\n");
         exit(0);
     }
+
+    const int segmentLenElements = num_elements / numStream;
+    const int segmentLenBins = num_bins / numStream;
+
     initVector(&in_h, num_elements, num_bins);
-    bins_h = (unsigned int*) malloc(num_bins*sizeof(unsigned int));
+    // bins_h = (unsigned int*) malloc(num_bins*sizeof(unsigned int));
+    cudaHostAlloc((void**)&bins_h, num_bins*sizeof(unsigned int), cudaHostAllocDefault);
 
     stopTime(&timer); printf("%f s\n", elapsedTime(timer));
     printf("    Input size = %u\n    Number of bins = %u\n", num_elements,
@@ -49,10 +61,32 @@ int main(int argc, char* argv[])
     printf("Allocating device variables..."); fflush(stdout);
     startTime(&timer);
 
-    cuda_ret = cudaMalloc((void**)&in_d, num_elements * sizeof(unsigned int));
-    if(cuda_ret != cudaSuccess) printf("Unable to allocate device memory");
-    cuda_ret = cudaMalloc((void**)&bins_d, num_bins * sizeof(unsigned int));
-    if(cuda_ret != cudaSuccess) printf("Unable to allocate device memory");
+    // cuda_ret = cudaMalloc((void**)&in_d, num_elements * sizeof(unsigned int));
+    // if(cuda_ret != cudaSuccess) printf("Unable to allocate device memory");
+    // cuda_ret = cudaMalloc((void**)&bins_d, num_bins * sizeof(unsigned int));
+    // if(cuda_ret != cudaSuccess) printf("Unable to allocate device memory");
+
+
+    for (int i = 0; i < numStream; i++)
+    {
+        if (i != numStream-1)
+        {
+            cudaMalloc((unsigned int**) &in_d[i], sizeof(unsigned int) * segmentLenElements);
+            cudaMalloc((unsigned int**) &bins_d[i], sizeof(unsigned int) * segmentLenBins);
+        }
+        else    // remainder
+        {
+            cudaMalloc((unsigned int**) &in_d[i], sizeof(unsigned int) * (segmentLenElements + num_elements % numStream));
+            cudaMalloc((unsigned int**) &bins_d[i], sizeof(unsigned int) * (segmentLenBins + num_bins % numStream));
+        }
+    }
+
+
+
+
+
+
+
 
     cudaDeviceSynchronize();
     stopTime(&timer); printf("%f s\n", elapsedTime(timer));
@@ -62,9 +96,28 @@ int main(int argc, char* argv[])
     printf("Copying data from host to device..."); fflush(stdout);
     startTime(&timer);
 
-    cuda_ret = cudaMemcpy(in_d, in_h, num_elements * sizeof(unsigned int),
-        cudaMemcpyHostToDevice);
-    if(cuda_ret != cudaSuccess) printf("Unable to copy memory to the device");
+    // cuda_ret = cudaMemcpy(in_d, in_h, num_elements * sizeof(unsigned int),
+    //     cudaMemcpyHostToDevice);
+    // if(cuda_ret != cudaSuccess) printf("Unable to copy memory to the device");
+
+    for (int i = 0; i < numStream; i++)
+    {
+        if (i != numStream-1)
+        {
+            cudaMemcpyAsync(in_d[i], in_h + i*segmentLenElements, sizeof(unsigned int)*segmentLenElements, cudaMemcpyHostToDevice, streams[i]);
+            cudaMemcpyAsync(B_d[i], bins_h + i*segmentLenBins, sizeof(unsigned int)*segmentLenBins, cudaMemcpyHostToDevice, streams[i]);
+        }
+        else
+        {
+            cudaMemcpyAsync(A_d[i], A_h + i*segmentLen, sizeof(unsigned int)*(segmentLenElements + num_elements % numStream), cudaMemcpyHostToDevice, streams[i]);
+            cudaMemcpyAsync(B_d[i], B_h + i*segmentLen, sizeof(unsigned int)*(segmentLenBins + num_bins % numStream), cudaMemcpyHostToDevice, streams[i]);
+        }
+    }
+
+
+
+
+
 
     cuda_ret = cudaMemset(bins_d, 0, num_bins * sizeof(unsigned int));
     if(cuda_ret != cudaSuccess) printf("Unable to set device memory");
@@ -76,7 +129,30 @@ int main(int argc, char* argv[])
     printf("Launching kernel..."); fflush(stdout);
     startTime(&timer);
 
-    histogram(in_d, bins_d, num_elements, num_bins);
+    // histogram(in_d, bins_d, num_elements, num_bins);
+
+    for (int i = 0; i < numStream; i++)
+    {
+        if (i != numStream-1)
+        {
+            histogram(in_d[i], bins_d[i], segmentLenElements, segmentLenBins, streams[i]);
+        }
+        else
+        {
+            // histogram(in_d[i], bins_d[i], C_d[i], segmentLen + VecSize % numStream, streams[i]);
+            histogram(in_d[i], bins_d[i], segmentLenElements + num_elements % numStream, segmentLenBins + num_bins % numStream, streams[i]);
+        }
+    }
+
+
+
+
+
+
+
+
+
+
     cuda_ret = cudaDeviceSynchronize();
     if(cuda_ret != cudaSuccess) printf("Unable to launch/execute kernel");
 
@@ -87,9 +163,28 @@ int main(int argc, char* argv[])
     printf("Copying data from device to host..."); fflush(stdout);
     startTime(&timer);
 
-    cuda_ret = cudaMemcpy(bins_h, bins_d, num_bins * sizeof(unsigned int),
-        cudaMemcpyDeviceToHost);
-	  if(cuda_ret != cudaSuccess) printf("Unable to copy memory to host");
+    // cuda_ret = cudaMemcpy(bins_h, bins_d, num_bins * sizeof(unsigned int),
+    //     cudaMemcpyDeviceToHost);
+	//   if(cuda_ret != cudaSuccess) printf("Unable to copy memory to host");
+
+    for (int i = 0; i < numStream; i++)
+    {
+        if (i != numStream-1)
+        {
+            cudaMemcpyAsync(bins_h + i*segmentLenBins, bins_d[i], sizeof(unsigned int)*segmentLenBins, cudaMemcpyDeviceToHost, streams[i]);
+        }
+        else
+        {
+            cudaMemcpyAsync(bins_h + i*segmentLenBins, bins_d[i], sizeof(unsigned int)*(segmentLenBins + num_bins % numStream), cudaMemcpyDeviceToHost, streams[i]);
+        }
+    }
+
+
+
+
+
+
+
 
     cudaDeviceSynchronize();
     stopTime(&timer); printf("%f s\n", elapsedTime(timer));
@@ -102,8 +197,17 @@ int main(int argc, char* argv[])
 
     // Free memory ------------------------------------------------------------
 
-    cudaFree(in_d); cudaFree(bins_d);
-    free(in_h); free(bins_h);
+    // cudaFree(in_d); cudaFree(bins_d);
+    // free(in_h); free(bins_h);
+    cudaFreeHost(in_h);
+    cudaFreeHost(bins_h);
+
+    for (int i = 0; i < numStream; i++)
+    {
+        cudaFree(in_d[i]);
+        cudaFree(bins_d[i]);
+        cudaStreamDestroy(streams[i]);
+    }
 
     return 0;
 }

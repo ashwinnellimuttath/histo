@@ -29,7 +29,7 @@ __global__ void histo_kernel(unsigned int* input, unsigned int* bins, unsigned i
 	  /*************************************************************************/
 }
 
-void histogram(unsigned int* input, unsigned int* bins, unsigned int num_elements, unsigned int num_bins) {
+void histogram(unsigned int* input, unsigned int* bins, unsigned int num_elements, unsigned int num_bins, cudaStream_t stream) {
 
 	  /*************************************************************************/
     //INSERT CODE HERE
@@ -38,7 +38,7 @@ void histogram(unsigned int* input, unsigned int* bins, unsigned int num_element
     dim3 DimGrid((num_elements-1)/BLOCK_SIZE + 1,1,1); 
     dim3 DimBlock(BLOCK_SIZE,1);
 
-    histo_kernel<<<DimGrid, DimBlock>>>(input, bins, num_elements, num_bins);
+    histo_kernel<<<DimGrid, DimBlock,0, stream>>>(input, bins, num_elements, num_bins);
 
 	  /*************************************************************************/
 

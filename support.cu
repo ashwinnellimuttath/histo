@@ -6,7 +6,8 @@
 
 void initVector(unsigned int **vec_h, unsigned int size, unsigned int num_bins)
 {
-    *vec_h = (unsigned int*)malloc(size*sizeof(unsigned int));
+    // *vec_h = (unsigned int*)malloc(size*sizeof(unsigned int));
+    cudaHostAlloc((void**)&vec_h, size*sizeof(unsigned int), cudaHostAllocDefault);
 
     if(*vec_h == NULL) {
         printf("Unable to allocate host");
