@@ -52,7 +52,10 @@ int main(int argc, char* argv[])
     const int segmentLenElements = num_elements / numStream;
     const int segmentLenBins = num_bins / numStream;
 
-    initVector(&in_h, num_elements, num_bins);
+    // initVector(&in_h, num_elements, num_bins);
+
+    cudaHostAlloc((void**)&in_h, num_elements*sizeof(unsigned int), cudaHostAllocDefault);
+    for (unsigned int i=0; i < num_elements; i++) { in_h[i] = (rand()%num_bins; }
     printf("\nInitialized..."); fflush(stdout);
 
     // bins_h = (unsigned int*) malloc(num_bins*sizeof(unsigned int));
