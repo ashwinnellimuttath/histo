@@ -22,6 +22,8 @@ int main(int argc, char* argv[])
     unsigned int num_elements, num_bins;
     cudaError_t cuda_ret;
 
+    printf("\nInitialized..."); fflush(stdout);
+
 
     cudaStream_t streams[numStream];
     for (int i = 0; i < numStream; i++)
