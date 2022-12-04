@@ -29,6 +29,9 @@ int main(int argc, char* argv[])
     for (int i = 0; i < numStream; i++)
         cudaStreamCreate(&streams[i]);
 
+    printf("\nInitialized..."); fflush(stdout);
+    
+
     if(argc == 1) {
         num_elements = 1000000;
         num_bins = 4096;
@@ -50,7 +53,6 @@ int main(int argc, char* argv[])
     const int segmentLenElements = num_elements / numStream;
     const int segmentLenBins = num_bins / numStream;
 
-    printf("\nInitialized..."); fflush(stdout);
     initVector(&in_h, num_elements, num_bins);
     // bins_h = (unsigned int*) malloc(num_bins*sizeof(unsigned int));
     cudaHostAlloc((void**)&bins_h, num_bins*sizeof(unsigned int), cudaHostAllocDefault);
